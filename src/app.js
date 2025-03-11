@@ -237,7 +237,7 @@ app.message(async ({ message, client }) => {
               type: "button",
               text: {
                 type: "plain_text",
-                text: "✓ Yes, post it",
+                text: "✓ Post to Main",
                 emoji: true
               },
               style: "primary",
@@ -248,7 +248,18 @@ app.message(async ({ message, client }) => {
               type: "button",
               text: {
                 type: "plain_text",
-                text: "✗ No, cancel",
+                text: "💨 Post to Vent",
+                emoji: true
+              },
+              style: "primary",
+              value: message.ts,
+              action_id: "post_vent"
+            },
+            {
+              type: "button",
+              text: {
+                type: "plain_text",
+                text: "✗ Cancel",
                 emoji: true
               },
               style: "danger",
@@ -321,7 +332,7 @@ app.action('post_anonymous', async ({ ack, body, client }) => {
     await client.chat.update({
       channel: body.channel.id,
       ts: body.message.ts,
-      text: "✓ Message posted anonymously. Any replies will appear in this thread.",
+      text: `✓ Message posted to <#${process.env.MAIN_CHANNEL_ID}>. Any replies will appear in this thread.`,
       blocks: []
     });
 
@@ -337,6 +348,64 @@ app.action('post_anonymous', async ({ ack, body, client }) => {
 
   } catch (error) {
     console.error('Error in post_anonymous handler:', error);
+    await client.chat.update({
+      channel: body.channel.id,
+      ts: body.message.ts,
+      text: "❌ Failed to post message. Please try again.",
+      blocks: []
+    });
+  }
+});
+
+app.action('post_vent', async ({ ack, body, client }) => {
+  await ack();
+  try {
+    const originalTs = body.actions[0].value;
+    
+    const result = await client.conversations.replies({
+      channel: body.channel.id,
+      ts: originalTs,
+      limit: 1
+    });
+
+    if (!result.messages?.length) return;
+    const originalMessage = result.messages[0];
+
+    const messageId = generateRandomId();
+
+    const channelPost = await client.chat.postMessage({
+      channel: process.env.VENT_CHANNEL_ID,
+      text: originalMessage.text,
+      username: `Anonymous-${messageId.substr(0, 8)}`,
+      icon_emoji: ':ghost:'
+    });
+
+    await storeThreadMapping(
+      channelPost.ts,
+      originalTs,
+      body.user.id,
+      messageId
+    );
+
+    await client.chat.update({
+      channel: body.channel.id,
+      ts: body.message.ts,
+      text: `✓ Message posted anonymously to <#${process.env.VENT_CHANNEL_ID}>. Any replies will appear in this thread.`,
+      blocks: []
+    });
+
+    setTimeout(async () => {
+      try {
+        await client.chat.delete({
+          channel: body.channel.id,
+          ts: originalTs
+        });
+      } catch (error) {
+      }
+    }, 5000);
+
+  } catch (error) {
+    console.error('Error in post_vent handler:', error);
     await client.chat.update({
       channel: body.channel.id,
       ts: body.message.ts,
