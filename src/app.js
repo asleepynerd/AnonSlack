@@ -277,11 +277,10 @@ app.event('message', async ({ event, client }) => {
       return;
     }
 
-    const sanitizedReply = sanitizeMessage(event.text);
     await client.chat.postMessage({
       channel: threadMapping.userId,
       thread_ts: threadMapping.dmThreadTs,
-      text: `*Reply in thread:*\n${sanitizedReply}`,
+      text: `*Reply in thread:*\n${event.text}`,
       mrkdwn: true
     });
   } catch (error) {
