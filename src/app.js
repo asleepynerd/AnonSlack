@@ -303,11 +303,10 @@ app.action('post_anonymous', async ({ ack, body, client }) => {
     const originalMessage = result.messages[0];
 
     const messageId = generateRandomId();
-    const sanitizedText = sanitizeMessage(originalMessage.text);
 
     const channelPost = await client.chat.postMessage({
       channel: process.env.ANONYMOUS_CHANNEL_ID,
-      text: sanitizedText,
+      text: originalMessage.text,
       username: `Anonymous-${messageId.substr(0, 8)}`,
       icon_emoji: ':ghost:'
     });
