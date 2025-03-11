@@ -164,15 +164,6 @@ const getThreadMapping = (threadTs) => {
   }
 };
 
-const sanitizeMessage = (text) => {
-  text = text.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '[removed]');
-  text = text.replace(/[;&|`$]/g, '');
-  text = text.replace(/xox[pbar]-[0-9]{12}-[0-9]{12}-[0-9]{12}-[a-z0-9]{32}/gi, '[token-removed]');
-  text = text.replace(/xox[pbar]-[0-9]{12}-[0-9]{12}-[0-9]{12}-[a-z0-9]{32}/gi, '[token-removed]');
-  text = text.replace(/\/[\w./\\-]+/g, '[path-removed]');
-  text = text.replace(/https?:\/\/[^\s<>]*(?:token|key|secret|password|pwd|auth)[^\s<>]*/gi, '[url-removed]');
-  return text;
-};
 
 
 const handleExpiredThread = async (client, event, threadTs) => {
@@ -215,11 +206,10 @@ app.message(async ({ message, client }) => {
     if (message.thread_ts) {
       const threadMapping = getThreadMapping(message.thread_ts);
       if (threadMapping) {
-        const sanitizedText = sanitizeMessage(message.text);
         await client.chat.postMessage({
           channel: process.env.ANONYMOUS_CHANNEL_ID,
           thread_ts: threadMapping.channelThreadTs,
-          text: sanitizedText,
+          text: message.text,
           username: `Anonymous-${threadMapping.messageId.substr(0, 8)}`,
           icon_emoji: ':ghost:'
         });
